@@ -1,8 +1,8 @@
 define2
 =======
 
-Provide new definitions of `lambda` and `define` that simplify keyword arguments
-and designing wrapper functions.
+Provide new but backward-compatible[*] definitions of `lambda` and `define` that simplify keyword arguments
+and designing wrapper functions. [[docs](https://docs.racket-lang.org/define2/index.html)]
 
 The keywords `#:!` for mandatory keyword arguments
 and `#:?` for optional keyword arguments
@@ -25,6 +25,9 @@ In both cases above, a call to `foo` is written
 Furthermore (and that was the original intent of this package),
 designing wrapper functions is greatly simplified:
 ```racket
+#lang racket
+(require define2)
+
 ; First let's define a function with an optional keyword that has a default value,
 ; and one mandatory argument:
 (define (foo #:? [x 3] #:! y)
@@ -35,10 +38,10 @@ designing wrapper functions is greatly simplified:
 (define (foo2 #:? x)
   (foo #:x x #:y 1))
 
-(foo2) ; 3
+(foo2) ; 4
 (foo2 #:x 0) ; 1
 ```
 
 
-
+[*] Unless the original code uses one of the special keywords `#:!` or the `#:?`. Note that `(define (foo #:x xx) ...)` is still a valid definition with `define2`.
 
