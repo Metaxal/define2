@@ -44,5 +44,9 @@
   (check-equal? ((my-curried-dict-ref 'a) '((a . aa) (b . bb))) 'aa)
   (check-exn exn:fail? (λ () ((my-curried-dict-ref 'aa) '((a . aa) (b . bb)))))
   (check-equal? ((my-curried-dict-ref 'aa #:default 4) '((a . aa) (b . bb))) 4)
+
+  ; This should not raise an argument order exception
+  (define2 (foo #:x [x 3] #:y y)
+    (list x y))
   
 )
