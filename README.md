@@ -1,7 +1,7 @@
 define2
 =======
 
-Provide new but backward-compatible[*] definitions of `lambda` and `define` that simplify keyword arguments
+Provides new but backward-compatible[*] definitions of `lambda` and `define` that simplify keyword arguments
 and designing wrapper functions. [[docs](https://docs.racket-lang.org/define2/index.html)]
 
 The keywords `#:!` for mandatory keyword arguments
