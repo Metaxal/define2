@@ -91,13 +91,10 @@
   (pattern (~seq kw:keyword [name:id default])
            #:attr binder #f))
 
-;;;
-;;; Unchanged from syntax/parse/lib/function-header
-;;;
-
-;; invalid-option-placement : (Listof Id) (Listof Syntax/#f) -> Id/#f
+;; invalid-option-placement : (Listof Keyword) (Listof Id) (Listof Syntax/#f) -> Id/#f
 ;; Checks for mandatory argument after optional argument; if found, returns
 ;; identifier of mandatory argument.
+;; Fix from original version: order does not matter in keyword arguments.
 (define (invalid-option-placement kws names defaults)
   ;; find-mandatory : (Listof Id) (Listof Syntax/#f) -> Id/#f
   ;; Finds first name w/o corresponding default.
