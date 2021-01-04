@@ -10,7 +10,7 @@
 (define-syntax (lambda2/derived stx)
   (syntax-parse stx
     #:context (syntax-parse stx [(_ orig-stx rst ...) #'orig-stx])
-    [(_ _orig-stx fmls:formals body ...+)
+    [(_ _orig-stx fmls:arguments body ...+)
      #'(lambda fmls.header
          (let fmls.binders
            body ...))]))

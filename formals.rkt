@@ -6,7 +6,7 @@
          racket/dict
          racket/list)
 
-(provide #;function-header formal formals syntax->keyword)
+(provide #;function-header argument arguments syntax->keyword)
 
 #;
 (define-syntax-class function-header ; not used
@@ -15,9 +15,9 @@
            #:attr params #'((~@ . (~? header.params ())) . args.params)
            #:attr name   #'(~? header.name name*)))
 
-(define-syntax-class formals
+(define-syntax-class arguments
   #:attributes (params header binders)
-  (pattern (arg:formal ...)
+  (pattern (arg:argument ...)
            #:attr params #'(arg.name ...)
            #:attr header #'((~@ (~? arg.kw) (~? (arg.name arg.default) arg.name)) ...)
            #:attr binders #'((~? arg.binder) ...)
@@ -31,7 +31,7 @@
            #:fail-when (invalid-option-placement
                         (attribute arg.name) (attribute arg.name) (attribute arg.default))
                        "default-value expression missing or wrong argument order")
-  (pattern (arg:formal ... . rest:id)
+  (pattern (arg:argument ... . rest:id)
            #:attr params #'(arg.name ... rest)
            #:attr binders #'((~? arg.binder) ...)
            #:attr header #'((~@ (~? arg.kw) (~? (arg.name arg.default) arg.name)) ... . rest)
@@ -61,7 +61,7 @@
 (define (syntax->keyword stx)
   (string->keyword (format "~a" (syntax-e stx))))
 
-(define-splicing-syntax-class formal
+(define-splicing-syntax-class argument
   #:commit ; force greedy matching, no backtracking
   #:attributes (name kw default binder)
   (pattern (~seq #:! name:id)
