@@ -82,13 +82,9 @@ The @racketmodname[define2] collection redefines @|rkt-lambda| and @|rkt-define|
    @defform[(λ args body ...+)
             #:grammar
             ([args
-              (arg ...)
-              (arg ...+ . rest-id)
+              (pos-id ... [opt-id opt-expr] ... kw-arg ...)
+              (pos-id ... [opt-id opt-expr] ... kw-arg ... . rest-id)
               rest-id]
-             [arg
-              (pos-id ...
-               [opt-id opt-expr] ...
-               kw-arg ...)]
              [kw-arg
               (code:line #:! id)
               (code:line #:? id)
@@ -103,9 +99,9 @@ An argument of the form @racket[#:? [name val]] is equivalent to @racket[#:name 
  but binds @racket[name] to @racket[val] only if @racket[name] is @racket[no-value].
 An argument of the form @racket[#:? name] is equivalent to @racket[#:name [name no-value]].
 
-This means in particular that @racket[(define (foo #:a the-a #:! a) ...)] is a syntax error
+This means in particular that @racket[(lambda (#:a the-a #:! a) ...)] is a syntax error
 (duplicate argument keyword),
-as well as @racket[(define (foo #:a the-a #:! the-a) ...)] (duplicate argument identifier).
+as well as @racket[(lambda (#:a the-a #:! the-a) ...)] (duplicate argument identifier).
 }
 
 @defform*[
@@ -115,3 +111,15 @@ Like @|rkt-define| from @racketmodname[racket/base],
  but uses @racket[lambda] from @racketmodname[define2] instead.
  Also supports the curried form.
 }
+
+@section{Acknowledgements}
+
+Thanks to
+Sorawee Porncharoenwase,
+Jack Firth,
+Jens-Axel Soegaard,
+Sam Tobin-Hochstadt,
+Greg Hendershott,
+Bogdan Popa,
+and Leif Anderson
+for their help.

@@ -96,7 +96,7 @@
 ;; identifier of mandatory argument.
 ;; Fix from original version: order does not matter in keyword arguments.
 (define (invalid-option-placement kws names defaults)
-  ;; find-mandatory : (Listof Id) (Listof Syntax/#f) -> Id/#f
+  ;; find-mandatory : (Listof Keyword) (Listof Id) (Listof Syntax/#f) -> Id/#f
   ;; Finds first name w/o corresponding default.
   (define (find-mandatory kws names defaults)
     (for/first ([kw (in-list kws)]
