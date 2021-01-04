@@ -1,13 +1,16 @@
 #lang scribble/manual
 @(require racket/sandbox
           scribble/example
-          (for-label define2
-                     (rename-in racket/base
-                                [lambda rkt:lambda]
-                                [define rkt:define])))
+          (for-label define2))
 
-@;{(define-syntax-rule (racket arg)
-   (racketmodname arg #:indirect))}
+@(module def-racket racket/base
+   (require scribble/manual
+            (for-label racket/base))
+   (define rkt-define @racket[define])
+   (define rkt-lambda @racket[lambda])
+   (define rkt-λ @racket[λ])
+   (provide (all-defined-out)))
+@(require 'def-racket)
 
 @(define my-eval
    (parameterize ([sandbox-output 'string]
@@ -22,11 +25,11 @@
 
 @margin-note{There may be incompatibility with code that uses keywords like @racket[#:!]
  and @racket[#:?].}
-The @racketid[define2] collection redefines @racket[lambda] and @racket[define] in a
+The @racketmodname[define2] collection redefines @|rkt-lambda| and @|rkt-define| in a
 (almost entirely) backward compatible way to provide the following functionalities:
 @itemlist[
- @item{a shortcut definition for keyword arguments to avoid the ubiquitous @racket[#:some-arg some-arg]
-  repetition,}
+ @item{a shortcut definition for keyword arguments to avoid the ubiquitous
+  @racket[#:some-arg some-arg] repetition,}
  @item{a pass-through mechanism for optional keyword arguments to simplify the
        definitions of 'wrapper' functions.}]
 
@@ -70,36 +73,41 @@ The @racketid[define2] collection redefines @racket[lambda] and @racket[define] 
  for clarity and possibly for user enhancements.
 }
 
-@defform[(lambda arg body ...)
+@deftogether[
+ (@defform[(lambda args body ...+)]{}
+   @defform[(λ args body ...+)
             #:grammar
-            ([arg
-              id
-              (pos-arg ...
-               opt-pos-arg ...
-               kw-arg ...
-               . maybe-rest)]
-             [pos-arg id]
-             [opt-pos-arg [id expr]]
+            ([args
+              (arg ...)
+              (arg ...+ . rest-id)
+              rest-id]
+             [arg
+              (pos-id ...
+               [opt-id opt-expr] ...
+               kw-arg ...)]
              [kw-arg
               (code:line #:! id)
               (code:line #:? id)
               (code:line #:? [id expr])
               (code:line keyword id)
-              (code:line keyword [id expr])]
-             [maybe-rest (code:line) (code:line id)])]{
-Like racket's lambda (see @racket[rkt:lambda])
+              (code:line keyword [id expr])])]{})]{
+Like @|rkt-lambda| and @|rkt-λ| from @racketmodname[racket/base], but
 with support for @racket[#:!] mandatory keyword arguments and @racket[#:?] optional keyword arguments.
 
  An argument of the form @racket[#:! name] is equivalent to @racket[#:name name].
 An argument of the form @racket[#:? [name val]] is equivalent to @racket[#:name [name val]]
  but binds @racket[name] to @racket[val] only if @racket[name] is @racket[no-value].
 An argument of the form @racket[#:? name] is equivalent to @racket[#:name [name no-value]].
+
+This means in particular that @racket[(define (foo #:a the-a #:! a) ...)] is a syntax error
+(duplicate argument keyword),
+as well as @racket[(define (foo #:a the-a #:! the-a) ...)] (duplicate argument identifier).
 }
 
-@defform[(define ....)]{
-Like racket's define (see @racket[rkt:define]),
- but uses @racket[lambda] from @racketmodname[define2].
+@defform*[
+ ((define id expr)
+  (define (head args) body ...+))]{
+Like @|rkt-define| from @racketmodname[racket/base],
+ but uses @racket[lambda] from @racketmodname[define2] instead.
  Also supports the curried form.
 }
-
-
