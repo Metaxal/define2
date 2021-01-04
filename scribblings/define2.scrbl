@@ -23,47 +23,47 @@
 
 @defmodule[define2]
 
-@margin-note{There may be incompatibility with code that uses keywords like @racket[#:!]
+@margin-note{There may be incompatibility with code that uses the keywords @racket[#:!]
  and @racket[#:?].}
 The @racketmodname[define2] collection redefines @|rkt-lambda| and @|rkt-define| in a
 (almost entirely) backward compatible way to provide the following functionalities:
 @itemlist[
  @item{a shortcut definition for keyword arguments to avoid the ubiquitous
   @racket[#:some-arg some-arg] repetition,}
- @item{a pass-through mechanism for optional keyword arguments to simplify the
-       definitions of 'wrapper' functions.}]
+ @item{a pass-through mechanism for optional keyword arguments to propagate
+  default values without having to know them.}]
 
 
 @examples[
- #:eval my-eval
-
- @code:comment{Mandatory #:! argument:}
+ #:eval my-eval #:label @elem{@bold{Example:} Mandatory @racket[#:!] argument}
+ 
  (define (make-fruits fruit #:! number)
    (make-list number fruit))
  
  @code:line[(make-fruits 'apple #:number 4) @code:comment{Notice the keyword name}]
+ ]
 
- @code:comment{ }
- @code:comment{Optional #:? argument:}
-
+@examples[
+ #:eval my-eval #:label @elem{@bold{Example:} Optional @racket[#:?] argument}
+ 
  (define (make-fruits2 fruit #:? [number 3])
    (make-list number fruit))
 
  (make-fruits2 'pear)
  (make-fruits2 'pear #:number 4)
+ ]
 
- @code:comment{ }
- @code:comment{Pass-through #:? argument:}
+@examples[
+ #:eval my-eval #:label @elem{@bold{Example:} Pass-through @racket[#:?] argument}
  
- @code:comment{Let's write a 'wrapper' function for `make-fruits2`}
- @code:comment{that gives `fruit` a default value,}
- @code:comment{but keeps the default value for `number`—whatever value this is.}
- (define (make-fruits3 #:? [fruit 'banana] #:? number)
-   (make-fruits2 fruit #:number number))
+ @code:comment{Let's write a function that uses `make-fruits2` without changing}
+ @code:comment{the default value for `number`—whatever value this is.}
+ (define (make-two-fruits fruit1 fruit2 #:? number)
+   (list (make-fruits2 fruit1 #:number number)
+         (make-fruits2 fruit2 #:number number)))
 
- (make-fruits3)
- (make-fruits3 #:fruit 'apple)
- (make-fruits3 #:number 2)
+ (make-two-fruits 'apple 'banana)
+ (make-two-fruits 'apple 'banana #:number 2)
  ]
 
 @deftogether[(@defthing[no-value symbol?]{}
