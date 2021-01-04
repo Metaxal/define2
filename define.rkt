@@ -25,12 +25,13 @@
     #:context stx
     [(_ identifier:id expr:expr)
      #'(define identifier expr)]
-    [(_ ((header ...) args ...) body ...+)
-     #`(define2 (header ...)
-         (lambda2/derived #,stx (args ...) body ...))]
-    [(_ (name:id args ...) body ...+)
+    [(_ (name:id . args) body ...+)
      #`(define name
-         (lambda2/derived #,stx (args ...) body ...))]))
+         (lambda2/derived #,stx args body ...))]
+    [(_ (header . args) body ...+)
+     #`(define2 header
+         (lambda2/derived #,stx args body ...))]
+    ))
 
 (module+ test
   (require rackunit
@@ -46,7 +47,36 @@
   (check-equal? ((my-curried-dict-ref 'aa #:default 4) '((a . aa) (b . bb))) 4)
 
   ; This should not raise an argument order exception
-  (define2 (foo #:x [x 3] #:y y)
-    (list x y))
+  (let ()
+    (define2 (foo #:x [x 3] #:y y)
+      (list x y))
+    (check-equal? (foo #:x 2 #:y 3)
+                  '(2 3))
+    (check-equal? (foo #:y 3)
+                  '(3 3)))
+
+  (let ()
+    (define2 (foo #:? [c #f]
+                   #:? [a #f]
+                   . rest-args)
+      (list a c rest-args))
+    (check-equal? (foo #:a 1 #:c 2 3 4)
+                  '(1 2 (3 4))))
+
+  (let ()
+    (define2 ((foo #:? [c #f] . rest-args1)
+              #:? [a #f]
+              . rest-args)
+      (list a c rest-args1 rest-args))
+    (check-equal? ((foo #:c 2 'x) #:a 1 3 4)
+                  '(1 2 (x) (3 4))))
+
+  (check-equal?
+   ((lambda2 (#:? [c #f]
+              #:? [a #f]
+              . rest-args)
+             (list a c rest-args))
+    #:a 1 #:c 2 3)
+   '(1 2 (3)))
   
 )
