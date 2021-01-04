@@ -8,6 +8,3 @@
                      [define2 define])
          no-value
          no-value?)
-
-(module+ test
-  (require rackunit))

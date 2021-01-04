@@ -5,9 +5,9 @@
 
 (provide lambda2 define2)
 
-;; The `formals` are parsed in this macro, and the #:context ensures that
-;; the reported name is correct
-(define-syntax (lambda2/derived stx)
+;; The `arguments` are parsed in this macro, and the #:context ensures that
+;; the reported name is correct.
+(define-syntax (lambda2/context stx)
   (syntax-parse stx
     #:context (syntax-parse stx [(_ orig-stx rst ...) #'orig-stx])
     [(_ _orig-stx fmls:arguments body ...+)
@@ -18,7 +18,7 @@
 (define-syntax (lambda2 stx)
   (syntax-parse stx
     [(_ args ...)
-     #`(lambda2/derived #,stx args ...)]))
+     #`(lambda2/context #,stx args ...)]))
 
 (define-syntax (define2 stx)
   (syntax-parse stx
@@ -27,11 +27,10 @@
      #'(define identifier expr)]
     [(_ (name:id . args) body ...+)
      #`(define name
-         (lambda2/derived #,stx args body ...))]
+         (lambda2/context #,stx args body ...))]
     [(_ (header . args) body ...+)
      #`(define2 header
-         (lambda2/derived #,stx args body ...))]
-    ))
+         (lambda2/context #,stx args body ...))]))
 
 (module+ test
   (require rackunit
@@ -57,8 +56,8 @@
 
   (let ()
     (define2 (foo #:? [c #f]
-                   #:? [a #f]
-                   . rest-args)
+                  #:? [a #f]
+                  . rest-args)
       (list a c rest-args))
     (check-equal? (foo #:a 1 #:c 2 3 4)
                   '(1 2 (3 4))))
@@ -77,6 +76,5 @@
               . rest-args)
              (list a c rest-args))
     #:a 1 #:c 2 3)
-   '(1 2 (3)))
-  
-)
+   '(1 2 (3)))  
+  )
