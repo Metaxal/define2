@@ -68,7 +68,11 @@ The @racketmodname[define2] collection redefines @|rkt-lambda| and @|rkt-define|
 
 @deftogether[(@defthing[no-value symbol?]{}
                @defproc[(no-value? [x any/c]) boolean?]{})]{
- @racket[no-value] is an uninterned symbol representing the default value of pass-through arguments.
+ @racket[no-value] is an
+  @techlink[#:key "uninterned"
+            #:doc '(lib "scribblings/reference/reference.scrbl")
+            ]{uninterned symbol}
+ representing the default value of pass-through arguments.
  @racket[no-value] does not normally need to be used, but is provided
  for clarity and possibly for user enhancements.
 }
