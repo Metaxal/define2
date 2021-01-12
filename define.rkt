@@ -10,7 +10,7 @@
 (define-syntax (lambda2/context stx)
   (syntax-parse stx
     #:context (syntax-parse stx [(_ orig-stx rst ...) #'orig-stx])
-    [(_ _orig-stx fmls:arguments body ...+)
+    [(_ _orig-stx fmls:arguments+rest body ...+)
      #'(lambda fmls.header
          (let fmls.binders
            body ...))]))
@@ -22,7 +22,6 @@
 
 (define-syntax (define2 stx)
   (syntax-parse stx
-    #:context stx
     [(_ identifier:id expr:expr)
      #'(define identifier expr)]
     [(_ (name:id . args) body ...+)

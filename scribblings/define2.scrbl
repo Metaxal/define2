@@ -115,6 +115,7 @@ Like @|rkt-define| from @racketmodname[racket/base],
 @section{Acknowledgements}
 
 Thanks to
+Ross Angle,
 Sorawee Porncharoenwase,
 Jack Firth,
 Jens-Axel Soegaard,

@@ -24,6 +24,12 @@
                 (define2 (foo #:? a #:a b) #f))
 
 (check-syntax-exn #rx"define2: duplicate argument identifier"
+                (define2 (foo #:! a . a) #f)) ; rest-id
+
+(check-syntax-exn #rx"define2: duplicate argument identifier"
+                (define2 (foo a . a) #f)) ; rest-id
+
+(check-syntax-exn #rx"define2: duplicate argument identifier"
                 (define2 (foo #:! a #:? a) #f))
 
 (check-syntax-exn #rx"define2: duplicate argument identifier"
@@ -34,6 +40,15 @@
 
 (check-syntax-exn #rx"define2: duplicate argument identifier"
                 (define2 (foo #:! a #:b a) #f))
+
+(check-syntax-exn #rx"define2: mandatory positional argument after optional positional argument"
+                  (define2 (foo a [b 1] c) #f))
+
+;; Should not raise a default-value missing error
+(check-equal? (let ()
+                (define2 (foo a #:b [b 1] c) (list a b c))
+                (foo 'a 'c #:b 'b))
+              '(a b c))
 
 (check-equal? (let ()
                 (define2 (foo) (list 'aa))
@@ -69,3 +84,34 @@
                   (list a b))
                 (foo #:a 3))
               '(3 4))
+
+(check-equal? (let ()
+                (define2 (foo #:? [x 3] #:y [y (+ x 3)])
+                  (list x y))
+                (foo #:x 10))
+              '(10 13))
+
+(check-equal? (let ()
+                (define2 (foo #:x [x 3] #:z z #:? [y (+ x z)])
+                  (list x y z))
+                (foo #:x 10 #:z 100))
+              '(10 110 100))
+
+(require (for-syntax "../formals.rkt"
+                     racket/base))
+
+(begin
+  (define-simple-macro (define3 (name:id . argsr:arguments+rest)
+                         body ...)
+    (define (name . argsr.header)
+      (let argsr.binders
+        body ...)))
+
+  ;; ERROR: arguments+rest does not preserve the order,
+  ;; hence x is unbound in y (but should be bound).
+  #;(check-equal? (let ()
+                (define3 (foo #:x [x 3] #:? [y (+ x 3)] . rst)
+                  (list x y rst))
+                (foo #:x 10 'a 'b))
+              '(10 13 (a b)))
+  )
