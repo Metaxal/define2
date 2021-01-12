@@ -1,7 +1,8 @@
 #lang scribble/manual
 @(require racket/sandbox
           scribble/example
-          (for-label define2))
+          (for-label define2
+                     define2/define-wrapper))
 
 @(module def-racket racket/base
    (require scribble/manual
@@ -16,10 +17,12 @@
    (parameterize ([sandbox-output 'string]
                   [sandbox-error-output 'string]
                   [sandbox-memory-limit 50])
-     (make-evaluator 'racket/base '(require define2 racket/list))))
+     (make-evaluator 'racket/base '(require define2 define2/define-wrapper racket/list))))
 
 @title{define2}
 @author{Laurent Orseau}
+
+@section{Define and lambda}
 
 @defmodule[define2]
 
@@ -111,6 +114,81 @@ Like @|rkt-define| from @racketmodname[racket/base],
  but uses @racket[lambda] from @racketmodname[define2] instead.
  Also supports the curried form.
 }
+
+@section{Wrapper functions}
+
+@defmodule[define2/define-wrapper]
+
+Writing wrapper functions is already simplified with the new @racket[define]
+thanks to pass-through optional arguments, but there can still be some verbosity left
+due to having to repeat the argument names.
+@racket[define-wrapper] helps with this by passing the arguments to the wrapped
+function automatically.
+
+@defform[(define-wrapper (fun [wrapped-fun arg ... maybe-rest]
+                                keyword-arg ...)
+           maybe-call-wrapped
+           body ...)
+         #:grammar
+         ([maybe-call-wrapped (code:line) (code:line #:call-wrapped call-wrapped-id)])]{
+@racket[arg ... maybe-rest] and @racket[keyword-arg ...] are arguments as for @racket[lambda],
+ but @racket[keyword-arg ...] are restricted to keyword arguments.
+
+The resulting function @racket[fun] takes as input all the arguments @racket[arg ... keyword-arg ... maybe-rest].
+Only the arguments @racket[arg ... maybe-rest] are forwarded to the call to @racket[wrapped-fun].
+The function @racket[wrapped-fun] must be defined elsewhere.
+
+If @racket[call-wrapped-id] is not provided then @racket[wrapped-fun] is called in tail-position;
+otherwise it should be called as @racket[(call-wrapped-id)] somewhere in @racket[body ...],
+ and this calls @racket[wrapped-fun] with the arguments @racket[arg ... maybe-rest].
+
+More concretely (supposing that @racket[bar] is already defined elsewhere),
+@racketblock[
+ (define-wrapper (foo (bar a #:? [b 'b])))]
+is equivalent to
+ @racketblock[
+ (define (foo a #:? [b 'b])
+   (bar a #:b b))]
+and
+@racketblock[
+ (define-wrapper (foo (bar a #:? [b 'b])
+                      #:c c)
+   (set! a (+ a c)))]
+is equivalent to
+@racketblock[
+ (define (foo a #:? [b 'b] #:c c)
+   (set! a (+ a c))
+   (bar a #:b b))]
+and
+@racketblock[
+ (define-wrapper (foo (bar a #:? [b 'b])
+                      #:c c)
+   #:call-wrapped bar-wrapped
+   (set! a (+ a c))
+   (define res (bar-wrapped))
+   (displayln res)
+   res)]
+is equivalent to
+@racketblock[
+ (define (foo a #:? [b 'b] #:c c)
+   (set! a (+ a c))
+   (define res (bar a #:b b))
+   (displayln res)
+   res)]
+ 
+}
+
+@bold{Note:} Be careful to not use pass-through arguments
+if the corresponding argument in @racket[wrapped-fun]
+is not an optional @racket[#:?] argument.
+@examples[
+ #:eval my-eval #:label "For example, this fails:"
+ (define-wrapper (my-sort (sort l <? #:? key)))
+ (eval:error (my-sort '(1 4 2) <))]
+@examples[
+ #:eval my-eval #:label "But this is fine:"
+ (define-wrapper (my-sort2 (sort l <? #:? [key values])))
+ (my-sort2 '(1 4 2) <)]
 
 @section{Acknowledgements}
 
