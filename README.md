@@ -82,7 +82,7 @@ In plain Racket, you would have to write it like this:
 ```
 Not only does this require you to know all the default values, but every optional name is written 4 times... That's really not worth it for a mere `#:xmin [x-min 0]`!
 
-But suppose that `plot` had been defined using `define2` instead with optional arguments with `#:?`, then we would just have to write
+But suppose that `plot` had been defined using `define2` instead with optional arguments with `#:?`, then we would just have to use the new `define-wrapper` form and write
 ```racket
 (define-wrapper (my-plot (plot renderer-tree
                                #:? [x-min 0]
