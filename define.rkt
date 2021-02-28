@@ -12,7 +12,7 @@
     #:context (syntax-parse stx [(_ orig-stx rst ...) #'orig-stx])
     [(_ _orig-stx fmls:arguments+rest body ...+)
      #'(lambda fmls.header
-         (let fmls.binders
+         (let* fmls.binders
            body ...))]))
 
 (define-syntax (lambda2 stx)

@@ -85,11 +85,12 @@
                 (foo #:a 3))
               '(3 4))
 
+;; Arguments can be reused.
 (check-equal? (let ()
-                (define2 (foo #:? [x 3] #:y [y (+ x 3)])
-                  (list x y))
+                (define2 (foo #:? [x 3] #:y [y (+ x 3)] #:? [z (+ y 10)])
+                  (list x y z))
                 (foo #:x 10))
-              '(10 13))
+              '(10 13 23))
 
 (check-equal? (let ()
                 (define2 (foo #:x [x 3] #:z z #:? [y (+ x z)])
@@ -97,21 +98,53 @@
                 (foo #:x 10 #:z 100))
               '(10 110 100))
 
+(let ()
+  (define bar 'bb)
+
+  (define2 (foo #:? [bar bar])
+    bar)
+
+  (define2 (foo2 #:? bar)
+    (foo #:bar bar))
+
+  ; This is a tricky one (h/t sorawee)
+  ; The second `bar` in [bar bar] is actually used, as an identifier, in two different ways:
+  ; The first time as a normal default argument,
+  ; The second time it becomes bound to the first `bar` identifier because of templates.
+  ; The answer would be to use generate temporaries
+  (check-equal? (foo2) 'bb))
+
+;; Non-duplicate side effects
+(let ()
+  (define c 0)
+  (define2 (foo #:? [bar (set! c (+ c 1))])
+    (list bar bar))
+  (check-equal? c 0)
+  (foo #:bar 'a)
+  (check-equal? c 0)
+  (foo)
+  (check-equal? c 1)
+  (foo #:bar 'a)
+  (check-equal? c 1)
+  (foo)
+  (check-equal? c 2)
+  )
+
 (require (for-syntax "../formals.rkt"
                      racket/base))
 
 (begin
+  ;; A simple definer like one a user could write
   (define-simple-macro (define3 (name:id . argsr:arguments+rest)
                          body ...)
     (define (name . argsr.header)
-      (let argsr.binders
+      (let* argsr.binders
         body ...)))
 
-  ;; ERROR: arguments+rest does not preserve the order,
-  ;; hence x is unbound in y (but should be bound).
-  #;(check-equal? (let ()
+  (check-equal? (let ()
                 (define3 (foo #:x [x 3] #:? [y (+ x 3)] . rst)
                   (list x y rst))
                 (foo #:x 10 'a 'b))
               '(10 13 (a b)))
   )
+

@@ -69,6 +69,18 @@ The @racketmodname[define2] collection redefines @|rkt-lambda| and @|rkt-define|
  (make-two-fruits 'apple 'banana #:number 2)
  ]
 
+The usual racket syntax @racket[#:keyword [id val]] can also be used with pass-through arguments:
+@examples[
+ #:eval my-eval #:label #f
+ (define (make-fruits3 fruit #:number [a-number 3])
+   (make-list a-number fruit))
+
+ (define (make-fruits4 fruit #:? number)
+   (make-fruits3 fruit #:number number))
+
+ (make-fruits4 'clementine)
+ ]
+
 @deftogether[(@defthing[no-value symbol?]{}
                @defproc[(no-value? [x any/c]) boolean?]{})]{
  @racket[no-value] is an
@@ -134,7 +146,8 @@ function automatically.
 @racket[arg ... maybe-rest] and @racket[keyword-arg ...] are arguments as for @racket[lambda],
  but @racket[keyword-arg ...] are restricted to keyword arguments.
 
-The resulting function @racket[fun] takes as input all the arguments @racket[arg ... keyword-arg ... maybe-rest].
+The resulting function @racket[fun] takes as input all the arguments
+@racket[arg ... keyword-arg ... maybe-rest].
 Only the arguments @racket[arg ... maybe-rest] are forwarded to the call to @racket[wrapped-fun].
 The function @racket[wrapped-fun] must be defined elsewhere.
 
