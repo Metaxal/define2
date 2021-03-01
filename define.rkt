@@ -24,9 +24,68 @@
   (syntax-parse stx
     [(_ identifier:id expr:expr)
      #'(define identifier expr)]
-    [(_ (name:id . args) body ...+)
-     #`(define name
+
+    [(_ (name:id . args:arguments+rest) body ...+)
+     #'(define name
          (lambda2/context #,stx args body ...))]
+
+    #; ; not ready yet
+    [(_ (name:id . args:arguments+rest) body ...+)
+     ; Note that arguments+rest parses args here and in lambda2. Not ideal.
+     #:attr defaults? (attribute args.defaults?)
+     #`(begin
+         (define name/proc
+           (lambda2/context #,stx args body ...))
+         (define-syntax (name call-stx)
+           (syntax-parse call-stx
+             [(_ call-arg (... ...))
+              #:cut ; this should only succeed, otherwise syntax-parse will try the next branch
+              ;
+              ;#:attr mand-pos (filter values
+              ;                        (map (λ (d k id) (and (not d) (not k) id))
+              ;                             'defaults?
+              ;                             (syntax->datum #'args.kws)
+              ;                             (syntax->datum #'args.names))) ; WARNING: May contain the rest id
+              ; If a keyword is optional, arg.default is #f, otherwise it's a syntax object
+              ; (possibly containing #f as a default value).
+              #:attr mand-kws (filter values
+                                      (map (λ (d k) (and (not d) k))
+                                           'defaults?
+                                           (syntax->datum #'args.kws)))
+              #:attr opt-kws (filter values
+                                     (map (λ (d k) (and d k))
+                                          'defaults?
+                                          (syntax->datum #'args.kws)))
+              #:fail-when
+              (let ([call-kws (filter keyword? (map syntax-e (syntax->list #'(call-arg (... ...)))))])
+                #;(writeln (list (attribute mand-kws) (attribute opt-kws) call-kws))
+                (or
+                 (for/or ([kw (in-list (attribute mand-kws))]
+                          #:when (keyword? kw))
+                   (and (not (memq kw call-kws))
+                        call-stx))))
+              (format "missing keywords\n mandatory: ~a\n optional: ~a\n"
+                      (attribute mand-kws)
+                      (attribute opt-kws))
+              
+              #:fail-when
+              ; TODO: Gather only mandatory keywords
+              (let ([def-kws (filter values (syntax->datum #'args.kws))])
+                #;(writeln def-kws)
+                (for/or ([kw (in-list (syntax->list #'(call-arg (... ...))))]
+                          #:when (keyword? (syntax-e kw)))
+                   (and (not (memq (syntax-e kw) def-kws))
+                        kw)))
+              (format "unknown keyword\n mandatory: ~a\n optional: ~a\n"
+                      (attribute mand-kws)
+                      (attribute opt-kws))
+              #;(format "Unknown keyword for ~a" (syntax->datum #'(name . args.call-args)))
+
+              #'(name/proc call-arg (... ...))]
+             
+             [_ #'name/proc])
+           ))]
+    
     [(_ (header . args) body ...+)
      #`(define2 header
          (lambda2/context #,stx args body ...))]))

@@ -187,13 +187,12 @@ is equivalent to
    (set! a (+ a c))
    (define res (bar a #:b b))
    (displayln res)
-   res)]
- 
+   res)] 
 }
 
 @bold{Note:} Be careful to not use pass-through arguments
 if the corresponding argument in @racket[wrapped-fun]
-is not an optional @racket[#:?] argument.
+is not an optional keyword argument.
 @examples[
  #:eval my-eval #:label "For example, this fails:"
  (define-wrapper (my-sort (sort l <? #:? key)))

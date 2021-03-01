@@ -27,12 +27,17 @@
 
 ;; This class ensures that the order of the arguments is preserved.
 (define-splicing-syntax-class splicing-arguments
-  #:attributes (names kws binders call-args header)
+  #:attributes (names kws defaults? binders call-args header)
   (pattern (~seq arg:argument ...)
            #:attr names    #'(arg.name ...)
-           #:attr kws      #'((~? arg.kw #f) ...) ; #:! a is #:a
+           #:attr kws      #'((~? arg.kw #f) ...) ; `#:! a` is `#:a`
+           #:attr defaults? (datum->syntax
+                             #f
+                             (map (λ (d) (if d #'#true #'#false))
+                                  (attribute arg.default))) ; (list-of boolean?)
+           ;#'((~? arg.default #f) ...)
            #:attr binders  #'((~? arg.binder) ...)
-           #:attr header   #'((~@ (~? arg.kw) (~? (arg.gen-name no-value) arg.name)) ...)
+           #:attr header   #'((~@ (~? arg.kw) (~? (arg.gen-name arg.default) arg.name)) ...)
            #:attr call-args #'((~? (~@ arg.kw arg.name) arg.name) ...)
            #:fail-when (check-duplicate-identifier (attribute arg.name))
                        "duplicate argument identifier"
@@ -47,11 +52,12 @@
                        "mandatory positional argument after optional positional argument"))
 
 (define-syntax-class arguments+rest
-  #:attributes (names kws binders call-args header)
+  #:attributes (names kws defaults? binders call-args header)
   (pattern (~or* (args:splicing-arguments)
                  (args:splicing-arguments . rest-id:id))
            #:attr names    #'((~@ . args.names) (~? rest-id))
            #:attr kws      #'args.kws
+           #:attr defaults? (attribute args.defaults?)
            #:attr binders  #'args.binders
            #:attr header (if (attribute rest-id)
                            #'((~@ . args.header) . rest-id)
@@ -80,19 +86,21 @@
            #:attr kw #'kw2
            #:attr default #'no-value
            #:attr binder #f)
-  (pattern (~seq #:? [name:id default])
+  (pattern (~seq #:? [name:id given-default:expr])
            #:with gen-name (generate-temporary)
            #:with kw2 (syntax->keyword #'name)
            ;#:attr name #'name
+           #:attr default #'no-value
            #:attr kw #'kw2
-           #:attr binder #'[name (if (eq? gen-name no-value) default gen-name)])
+           #:attr binder #'[name (if (eq? gen-name no-value) given-default gen-name)])
   (pattern (~seq kw:keyword name:id)
            #:attr gen-name #f
            #:attr default #f
            #:attr binder #f)
-  (pattern (~seq kw:keyword [name:id default])
+  (pattern (~seq kw:keyword [name:id given-default:expr])
            #:with gen-name (generate-temporary)
-           #:attr binder #'[name (if (eq? gen-name no-value) default gen-name)]))
+           #:attr default #'no-value
+           #:attr binder #'[name (if (eq? gen-name no-value) given-default gen-name)]))
 
 (define-splicing-syntax-class argument
   #:commit ; force greedy matching, no backtracking
@@ -102,8 +110,8 @@
            #:attr kw #f
            #:attr default #f
            #:attr binder #f)
-  (pattern [name:id default]
-           #:attr gen-name #f
+  (pattern [name:id default:expr]
+           #:attr gen-name #'name ; no need to generate a temporary, but serves to say optional arg
            #:attr kw #f
            #:attr binder #f)
   (pattern kw-arg:keyword-argument

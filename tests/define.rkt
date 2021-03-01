@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require define2/define
+         define2/define-wrapper
          syntax/macro-testing
          syntax/parse/define
          rackunit)
@@ -43,6 +44,12 @@
 
 (check-syntax-exn #rx"define2: mandatory positional argument after optional positional argument"
                   (define2 (foo a [b 1] c) #f))
+
+(check-equal? (let ()
+                (define2 (foo a [b 'b] . rst)
+                  (list a b rst))
+                (list (foo 'aa) (foo 'aa 'bb) (foo 'aa 'bb 'cc 'dd)))
+              '((aa b ()) (aa bb ()) (aa bb (cc dd))))
 
 ;; Should not raise a default-value missing error
 (check-equal? (let ()
@@ -147,4 +154,3 @@
                 (foo #:x 10 'a 'b))
               '(10 13 (a b)))
   )
-
