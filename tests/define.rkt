@@ -50,6 +50,11 @@
                     (define2 (foo aa #:? [aaa 'a]) #f)
                     (foo)))
 
+(check-syntax-exn #rx"foo: too many positional arguments"
+                  (let ()
+                    (define2 (foo a [b 'bb]) #f)
+                    (foo 'a 'b 'c)))
+
 (check-syntax-exn #rx"foo: missing keyword"
                   (let ()
                     (define2 (foo #:aa aaa) #f)

@@ -22,6 +22,8 @@
      #`(lambda2/context #,stx args ...)]))
 
 (begin-for-syntax
+  (print-reader-abbreviations #true)
+
   ;; Takes arguments attributes as parsed by arguments+rest and returns
   ;; * the list of mandatory positional identifiers
   ;; * the list of optional positional identifiers
@@ -54,12 +56,15 @@
                (if (and      k  (not d)) (cons k mand-kws) mand-kws)
                (if (and      k       d)  (cons k  opt-kws)  opt-kws))])))
   
-  (define (call/check mand-pos opt-pos mand-kws opt-kws rest-id proc-id call-stx)
+  (define (call/check name-sym mand-pos opt-pos mand-kws opt-kws rest-id proc-id call-stx)
     (with-syntax ([proc-id proc-id])
       (syntax-parse call-stx
+        #:context call-stx
         [(_ call-arg ...)
          #:cut ; this should only succeed, otherwise syntax-parse will try the next branch
-         #:do [(define-values (call-vals call-kws-stx)
+         #:do [(define n-mand-pos (length mand-pos))
+               (define n-opt-pos (length opt-pos))
+               (define-values (call-vals call-kws-stx)
                  (for/fold ([vals '()] [kws '()] #:result (values (reverse vals) (reverse kws)))
                            ([arg (in-list (syntax->list #'(call-arg ...)))])
                    (if (keyword? (syntax-e arg))
@@ -68,18 +73,34 @@
                (define call-kws (map syntax-e call-kws-stx))
                ; number of positional arguments
                (define call-n-pos (- (length call-vals) (length call-kws-stx)))
-               #;(writeln (list 'call: call-vals call-kws call-n-pos))]
+               #;(writeln (list 'call: call-vals call-kws call-n-pos))
+               
+               (define header (cons name-sym (append mand-pos
+                                                     (if (null? opt-pos)
+                                                       '()
+                                                       (list opt-pos))
+                                                     mand-kws
+                                                     (if (null? opt-kws)
+                                                       '()
+                                                       (list opt-kws))
+                                                     (or rest-id '()))))]
 
          #:fail-when
-         (and (< call-n-pos (length mand-pos))
+         (and (< call-n-pos n-mand-pos)
               call-stx)
-         (format "missing mandatory positional arguments")
+         (format "missing mandatory positional arguments;\n header: ~a" header)
+
+         #:fail-when
+         (and (not rest-id)
+              (> call-n-pos (+ (length mand-pos) (length opt-pos)))
+              call-stx)
+         (format "too many positional arguments;\n header: ~a" header)
          
          #:fail-when
          (for/or ([kw (in-list mand-kws)])
            (and (not (memq kw call-kws))
                 call-stx))
-         (format "missing keywords\n mandatory: ~a\n optional: ~a\n" mand-kws opt-kws)
+         (format "missing keywords;\n header: ~a" header)
               
          #:fail-when
          (for/or ([kw (in-list call-kws-stx)])
@@ -87,7 +108,7 @@
            (and (not (memq k mand-kws))
                 (not (memq k opt-kws))
                 kw))
-         (format "unknown keyword\n mandatory: ~a\n optional: ~a\n" mand-kws opt-kws)
+         (format "unknown keyword;\n header: ~a" header)
          
          #'(proc-id call-arg ...)]
              
@@ -114,17 +135,18 @@
              (arg-seqs->arg-lists (syntax->datum #'args.names)
                                   (syntax->datum #'args.kws)
                                   (syntax->datum (attribute args.defaults?))))
-           #;(writeln (list mand-pos opt-pos mand-kws opt-kws rest-id))]
+           #;(writeln (list mand-pos opt-pos mand-kws opt-kws rest-id))
+           (define name-sym (syntax-e #'name))]
      #`(begin
          (define proc-id
            ;; Make sure to print the correct name for the procedure.
            ;; https://docs.racket-lang.org/reference/syntax-model.html#(part._infernames)
            #,(syntax-property #'(lambda2/context #,stx args body ...)
                                'inferred-name
-                               (syntax-e #'name)))
+                               name-sym))
          (define-syntax (name call-stx)
-           (call/check '#,mand-pos '#,opt-pos '#,mand-kws '#,opt-kws '#,rest-id
-                       #'proc-id
+           (call/check '#,name-sym '#,mand-pos '#,opt-pos '#,mand-kws '#,opt-kws '#,rest-id
+                       #'proc-id                       
                        call-stx)))]
 
     [(_ (header . args) body ...+)
