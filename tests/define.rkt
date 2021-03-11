@@ -65,6 +65,12 @@
                     (define2 (foo #:! aaa) #f)
                     (foo)))
 
+; curried
+(check-syntax-exn #rx"foo: missing keyword"
+                  (let ()
+                    (define2 ((foo #:! aaa) #:b b) #f)
+                    (foo)))
+
 (check-syntax-exn #rx"foo: unknown keyword"
                   (let ()
                     (define2 (foo) #f)
