@@ -45,6 +45,39 @@
 (check-syntax-exn #rx"define2: mandatory positional argument after optional positional argument"
                   (define2 (foo a [b 1] c) #f))
 
+(check-syntax-exn #rx"foo: missing mandatory positional argument"
+                  (let ()
+                    (define2 (foo aa #:? [aaa 'a]) #f)
+                    (foo)))
+
+(check-syntax-exn #rx"foo: missing keyword"
+                  (let ()
+                    (define2 (foo #:aa aaa) #f)
+                    (foo)))
+
+(check-syntax-exn #rx"foo: missing keyword"
+                  (let ()
+                    (define2 (foo #:! aaa) #f)
+                    (foo)))
+
+(check-syntax-exn #rx"foo: unknown keyword"
+                  (let ()
+                    (define2 (foo) #f)
+                    (foo #:aaa 'a)))
+
+;; No missing keyword exception
+(check-equal?
+ (let ()
+   (define2 (foo #:? aaa) #t)
+   (foo))
+ #t)
+;
+(check-equal?
+ (let ()
+   (define2 (foo #:aa aaa) #t)
+   (foo #:aa #t))
+ #t)
+
 (check-equal? (let ()
                 (define2 (foo a [b 'b] . rst)
                   (list a b rst))
