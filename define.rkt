@@ -88,19 +88,19 @@
          #:fail-when
          (and (< call-n-pos n-mand-pos)
               call-stx)
-         (format "missing mandatory positional arguments;\n header: ~a" header)
+         (format "missing mandatory positional arguments\n  header: ~a" header)
 
          #:fail-when
          (and (not rest-id)
               (> call-n-pos (+ (length mand-pos) (length opt-pos)))
               call-stx)
-         (format "too many positional arguments;\n header: ~a" header)
+         (format "too many positional arguments\n  header: ~a" header)
          
          #:fail-when
          (for/or ([kw (in-list mand-kws)])
            (and (not (memq kw call-kws))
                 call-stx))
-         (format "missing keywords;\n header: ~a" header)
+         (format "missing keywords\n  header: ~a" header)
               
          #:fail-when
          (for/or ([kw (in-list call-kws-stx)])
@@ -108,7 +108,7 @@
            (and (not (memq k mand-kws))
                 (not (memq k opt-kws))
                 kw))
-         (format "unknown keyword;\n header: ~a" header)
+         (format "unknown keyword\n  header: ~a" header)
          
          #'(proc-id call-arg ...)]
              

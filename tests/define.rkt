@@ -178,8 +178,7 @@
   (foo #:bar 'a)
   (check-equal? c 1)
   (foo)
-  (check-equal? c 2)
-  )
+  (check-equal? c 2))
 
 (require (for-syntax "../formals.rkt"
                      racket/base))
@@ -196,5 +195,4 @@
                 (define3 (foo #:x [x 3] #:? [y (+ x 3)] . rst)
                   (list x y rst))
                 (foo #:x 10 'a 'b))
-              '(10 13 (a b)))
-  )
+              '(10 13 (a b))))

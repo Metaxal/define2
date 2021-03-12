@@ -202,6 +202,32 @@ is not an optional keyword argument.
  (define-wrapper (my-sort2 (sort l <? #:? [key values])))
  (my-sort2 '(1 4 2) <)]
 
+@section{Compile-time error checking}
+
+In standard Racket, when a function is defined with @|rkt-define|,
+and is later called with the wrong number of arguments or with the wrong keywords, an error
+is signalled only at run time, when the function is called.
+
+Instead, using the @racketid[define] form provided by @racketmodname[define2]
+signals an error at @emph{compile-time}.
+
+Thus, such errors are caught much earlier than with standard Racket,
+for example with @exec{raco make}.
+Furthermore, since DrRacket runs background expansion, such errors can be caught as early as
+the are written.
+
+@examples[
+ #:eval my-eval #:label "The following errors are raised at compile time:"
+ (define (foo bar [baz 'b] #:fizz fizz #:buzz [buzz #t])
+   #true)
+
+ (eval:error (foo))
+ (eval:error (foo 'a 'b 'c #:fizz 'f))
+ (eval:error (foo 'a))
+ (eval:error (foo 'a #:fizz 'f #:beurre 'b))]
+
+For the last error, DrRacket even highlights the wrong keyword.
+
 @section{Acknowledgements}
 
 Thanks to
@@ -212,5 +238,7 @@ Jens-Axel Soegaard,
 Sam Tobin-Hochstadt,
 Greg Hendershott,
 Bogdan Popa,
+Matthew Flatt,
+Robby Findler,
 and Leif Anderson
 for their help.
