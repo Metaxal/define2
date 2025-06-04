@@ -110,10 +110,12 @@
            #:attr kw #f
            #:attr default #f
            #:attr binder #f)
-  (pattern [name:id default:expr]
-           #:attr gen-name #'name ; no need to generate a temporary, but serves to say optional arg
+  (pattern [name:id default-expr:expr]
+           #:with gen-name (generate-temporary #'name) ; Generate temporary based on name
            #:attr kw #f
-           #:attr binder #f)
+           #:attr default #'no-value ; Signifies it's optional for header construction
+           #:attr binder (syntax-property #`[name (if (eq? gen-name no-value) default-expr gen-name)]
+                                          'paren-shape #rx"atomic-form")) ; Keep let binding flat
   (pattern kw-arg:keyword-argument
            #:attr name     (attribute kw-arg.name)
            #:attr gen-name (attribute kw-arg.gen-name)

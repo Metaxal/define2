@@ -180,6 +180,27 @@
   (foo)
   (check-equal? c 2))
 
+(check-equal?
+ (let ()
+   (define2 (foo [x 'xx]) ; Positional optional argument
+     x)
+   (define2 (bar #:? x)   ; Optional keyword argument, defaults to no-value if not provided
+     (foo x))            ; Call foo with the value of x from bar
+   (bar))                ; Call bar without providing #:x, so x in bar is no-value
+ 'xx                     ; Expected result after the fix in formals.rkt
+ "Issue #4: Positional default argument not propagating from keyword call")
+
+;; For contrast (this was already working)
+(check-equal?
+ (let ()
+   (define2 (foo #:? [x 'xx]) ; Keyword optional argument
+     x)
+   (define2 (bar #:? x)     ; Optional keyword argument
+     (foo #:x x))          ; Call foo with x from bar, passing as keyword
+   (bar))
+ 'xx
+ "Issue #4: Control case with keyword arguments (should already pass)")
+
 (require (for-syntax "../formals.rkt"
                      racket/base))
 
