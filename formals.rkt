@@ -87,7 +87,7 @@
            #:attr default #'no-value
            #:attr binder #f)
   (pattern (~seq #:? [name:id given-default:expr])
-           #:with gen-name (generate-temporary)
+           #:with gen-name (generate-temporary #'name)
            #:with kw2 (syntax->keyword #'name)
            ;#:attr name #'name
            #:attr default #'no-value
@@ -110,10 +110,11 @@
            #:attr kw #f
            #:attr default #f
            #:attr binder #f)
-  (pattern [name:id default:expr]
-           #:attr gen-name #'name ; no need to generate a temporary, but serves to say optional arg
+  (pattern [name:id default-expr:expr]
+           #:with gen-name (generate-temporary #'name) ; Generate temporary based on name
            #:attr kw #f
-           #:attr binder #f)
+           #:attr default #'no-value ; Signifies it's optional for header construction
+           #:attr binder #`[name (if (eq? gen-name no-value) default-expr gen-name)])
   (pattern kw-arg:keyword-argument
            #:attr name     (attribute kw-arg.name)
            #:attr gen-name (attribute kw-arg.gen-name)

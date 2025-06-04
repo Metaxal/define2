@@ -1,7 +1,7 @@
 #lang racket/base
 
-(require define2/define
-         define2/define-wrapper
+(require "../define.rkt"
+         "../define-wrapper.rkt"
          syntax/macro-testing
          syntax/parse/define
          rackunit)
@@ -164,6 +164,27 @@
   ; The second time it becomes bound to the first `bar` identifier because of templates.
   ; The answer would be to use generate temporaries
   (check-equal? (foo2) 'bb))
+
+(check-equal?
+ (let ()
+   (define2 (foo [x 'xx]) ; Positional optional argument
+     x)
+   (define2 (bar #:? x)   ; Optional keyword argument, defaults to no-value if not provided
+     (foo x))            ; Call foo with the value of x from bar
+   (bar))                ; Call bar without providing #:x, so x in bar is no-value
+ 'xx                     ; Expected result after the fix in formals.rkt
+ "Issue #4: Positional default argument not propagating from keyword call")
+
+;; For contrast (this was already working)
+(check-equal?
+ (let ()
+   (define2 (foo #:? [x 'xx]) ; Keyword optional argument
+     x)
+   (define2 (bar #:? x)     ; Optional keyword argument
+     (foo #:x x))          ; Call foo with x from bar, passing as keyword
+   (bar))
+ 'xx
+ "Issue #4: Control case with keyword arguments (should already pass)")
 
 ;; Non-duplicate side effects
 (let ()
