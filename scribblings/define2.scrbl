@@ -2,7 +2,8 @@
 @(require racket/sandbox
           scribble/example
           (for-label define2
-                     define2/define-wrapper))
+                     define2/define-wrapper
+                     define2/struct2))
 
 @(module def-racket racket/base
    (require scribble/manual
@@ -18,6 +19,12 @@
                   [sandbox-error-output 'string]
                   [sandbox-memory-limit 50])
      (make-evaluator 'racket/base '(require define2 define2/define-wrapper racket/list))))
+
+@(define struct2-eval
+   (parameterize ([sandbox-output 'string]
+                  [sandbox-error-output 'string]
+                  [sandbox-memory-limit 50])
+     (make-evaluator 'racket/base '(require define2 define2/struct2))))
 
 @title{define2}
 @author{Laurent Orseau}
@@ -264,6 +271,81 @@ The output is designed to be copy-pastable into a REPL.
   need minor manual adjustment.}
  @item{@racket[#:fail-case] is @bold{not} supported in curried function definitions
   such as @racket[(define ((f x) y) ...)].}]
+
+@section{Struct2}
+
+@defmodule[define2/struct2]
+@index["struct2"]
+
+@racketmodname[define2/struct2] provides @racket[struct2], an enhanced @racket[struct] form
+that generates a keyword constructor @racketid[<name>/kw] using @racketmodname[define2]'s
+keyword syntax. This gives you @bold{compile-time checking} of constructor calls
+(missing arguments, unknown keywords). @racket[struct2] supports inheritance in a slightly different
+(but more flexible) way than standard @racket[struct].
+
+@defform[(struct2 name maybe-parent (field-spec ...) option ...)
+         #:grammar
+         ([maybe-parent (code:line) (code:line parent-id)]
+          [field-spec
+           id
+           (code:line [id default-expr])
+           (code:line [id #:mutable])
+           (code:line [id default-expr #:mutable])]
+          [option
+           (code:line #:fender fender-expr)
+           (code:line #:transparent)
+           (code:line #:prefab)
+           (code:line @#,elem{any @racket[struct] option})])]{
+Defines a struct like @racket[struct], plus a @racketid[<name>/kw] keyword constructor.}
+
+@examples[
+ #:eval struct2-eval #:label @elem{@bold{Example:}}
+
+ (struct2 Point ([x 0] [y 0]) #:transparent)
+ (Point/kw #:x 10 #:y 20)
+ (Point/kw #:y 5)
+ (Point/kw)
+ ]
+
+@subsection{Inheritance}
+
+When a @racketid[parent-id] is given, @bold{the constructor takes a parent instance
+as its first positional argument} and copies the parent's fields into the new struct.
+The parent struct must be @racket[#:transparent].
+This allows both for inheritance and for extension of existing objects,
+and also allows for the fender to access the parent's fields.
+
+
+@examples[
+ #:eval struct2-eval #:label #f
+
+ (struct2 Shape ([color "red"]) #:transparent)
+ (struct2 Circle Shape (radius) #:transparent)
+
+ (define a-shape (Shape/kw #:color "blue"))
+ (define a-circle (Circle/kw a-shape #:radius 5))
+ (Shape-color a-circle)
+ (Circle-radius a-circle)
+ ]
+
+@subsection{Fenders and @racketid[super]}
+
+A @racket[#:fender] clause adds validation that runs before construction.
+In an inheriting struct, the identifier @racketid[super] is automatically bound
+to the parent instance inside the fender — no import needed.
+
+@examples[
+ #:eval struct2-eval #:label #f
+
+ (struct2 Shape2 ([color "red"]) #:transparent)
+ (struct2 Disc Shape2 (radius)
+          #:fender (when (<= radius 0)
+                     (error 'Disc/kw "radius must be positive, got ~a" radius))
+          #:transparent)
+
+ (Disc/kw (Shape2/kw #:color "blue") #:radius 5)
+ (eval:error (Disc/kw (Shape2/kw) #:radius -1))
+ ]
 
 @section{Acknowledgements}
 
