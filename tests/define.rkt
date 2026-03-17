@@ -217,3 +217,57 @@
                   (list x y rst))
                 (foo #:x 10 'a 'b))
               '(10 13 (a b))))
+
+;; Tests moved from define.rkt (module+ test)
+(require racket/dict)
+
+(check-equal? (let ()
+                (define2 (my-dict-ref d k #:? [default (λ () (error "Unknown key: ~a" k))])
+                  (dict-ref d k default))
+                (define2 ((my-curried-dict-ref k #:? default) d)
+                  (my-dict-ref d k #:default default))
+
+                (list
+                 ((my-curried-dict-ref 'a) '((a . aa) (b . bb)))
+                 ((my-curried-dict-ref 'aa #:default 4) '((a . aa) (b . bb)))))
+              '(aa 4))
+
+(check-exn exn:fail?
+           (λ () (let ()
+                   (define2 (my-dict-ref d k #:? [default (λ () (error "Unknown key: ~a" k))])
+                     (dict-ref d k default))
+                   (define2 ((my-curried-dict-ref k #:? default) d)
+                     (my-dict-ref d k #:default default))
+                   ((my-curried-dict-ref 'aa) '((a . aa) (b . bb))))))
+
+; Argument order exception should not be raised
+(check-equal? (let ()
+                (define2 (foo #:x [x 3] #:y y)
+                  (list x y))
+                (list (foo #:x 2 #:y 3)
+                      (foo #:y 3)))
+              '((2 3) (3 3)))
+
+(let ()
+  (define2 (foo #:? [c #f]
+                #:? [a #f]
+                . rest-args)
+    (list a c rest-args))
+  (check-equal? (foo #:a 1 #:c 2 3 4)
+                '(1 2 (3 4))))
+
+(let ()
+  (define2 ((foo #:? [c #f] . rest-args1)
+            #:? [a #f]
+            . rest-args)
+    (list a c rest-args1 rest-args))
+  (check-equal? ((foo #:c 2 'x) #:a 1 3 4)
+                '(1 2 (x) (3 4))))
+
+(check-equal?
+ ((lambda2 (#:? [c #f]
+            #:? [a #f]
+            . rest-args)
+           (list a c rest-args))
+  #:a 1 #:c 2 3)
+ '(1 2 (3)))

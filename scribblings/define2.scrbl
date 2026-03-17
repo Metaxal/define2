@@ -228,6 +228,43 @@ the are written.
 
 For the last error, DrRacket even highlights the wrong keyword.
 
+@section{Fail case}
+@index["fail-case"]
+@index["#:fail-case"]
+
+When running randomized tests or processing unpredictable inputs, it can be difficult to
+reproduce a failure after the fact. The @racket[#:fail-case] annotation on @racketid[define] helps with
+this by printing a copy-pastable call expression to @racket[current-error-port] whenever an
+@racket[exn:fail?] is raised during the function's body.
+
+Place @racket[#:fail-case] between the function header and the body:
+
+@examples[
+ #:eval my-eval #:label #f
+
+ (define (my-function x #:! y #:? [zoo 0] . rest)
+   #:fail-case
+   (when (= x y) (error "x and y must differ"))
+   (list x y zoo rest))
+
+ (my-function 1 #:y 2 #:zoo 3 'a 'b)
+ (eval:error (my-function 6 #:y 6))
+ ]
+
+If @racket[my-function] raises an @racket[exn:fail?], a reproducible call expression
+is printed to @racket[current-error-port] before the exception is re-raised.
+The output is designed to be copy-pastable into a REPL.
+
+@bold{Notes:}
+@itemlist[
+ @item{Argument values are captured @emph{before} the body executes, so
+  mutations to arguments within the body do not affect the printed values.}
+ @item{Values are printed using @racket[~v] with @racket[print-as-expression]
+  set to @racket[#true]. For values without a readable form, the output may
+  need minor manual adjustment.}
+ @item{@racket[#:fail-case] is @bold{not} supported in curried function definitions
+  such as @racket[(define ((f x) y) ...)].}]
+
 @section{Acknowledgements}
 
 Thanks to

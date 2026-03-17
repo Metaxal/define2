@@ -2,7 +2,9 @@
 (require (for-syntax "formals.rkt"
                      racket/base
                      syntax/parse
-                     racket/syntax))
+                     racket/syntax)
+         racket/format
+         racket/list)
 
 (provide lambda2 define2)
 
@@ -114,8 +116,49 @@
              
         [_ #'proc-id]))))
 
-;; TODO:
-;; * make these defines instead of define-syntax so as to test exceptions?
+(begin-for-syntax
+  ;; Shared helper for define2's function-definition clauses.
+  ;; fail-case? : boolean — whether #:fail-case was present
+  (define (make-define2-body stx name-stx args-stx body-stxs fail-case?)
+    (syntax-parse args-stx
+      #:context stx
+      [args:arguments+rest
+       (define-values (mand-pos opt-pos mand-kws opt-kws rest-id)
+         (arg-seqs->arg-lists (syntax->datum #'args.names)
+                              (syntax->datum #'args.kws)
+                              (syntax->datum (attribute args.defaults?))))
+       (define name-sym (syntax-e name-stx))
+       (with-syntax ([name name-stx]
+                     [(body ...) body-stxs]
+                     [(arg-name ...) #'args.names]
+                     [(saved-id ...) (generate-temporaries #'args.names)]
+                     [proc-id (generate-temporary)])
+         #`(begin
+             (define proc-id
+               #,(syntax-property
+                  (if fail-case?
+                    #`(lambda2/context #,stx args
+                        (let ([saved-id arg-name] ...)
+                          (with-handlers
+                              ([exn:fail?
+                                (λ (e)
+                                  (eprintf "Reproducible failure case:\n")
+                                  (define prog
+                                    (parameterize ([print-as-expression #true])
+                                      (fail-case-call->string 'name
+                                                              '#,(syntax->datum #'args.kws)
+                                                              (list saved-id ...))))
+                                  (displayln prog (current-error-port))
+                                  (newline (current-error-port))
+                                  (raise e))])
+                            body ...)))
+                    #`(lambda2/context #,stx args body ...))
+                  'inferred-name
+                  name-sym))
+             (define-syntax (name call-stx)
+               (call/check '#,name-sym '#,mand-pos '#,opt-pos '#,mand-kws '#,opt-kws '#,rest-id
+                           #'proc-id
+                           call-stx))))])))
 
 (define-syntax (define2 stx)
   (syntax-parse stx
@@ -126,76 +169,32 @@
     [(_ (name:id . args:arguments+rest) body ...+)
      #'(define name
          (lambda2/context #,stx args body ...))]
-     ; NOT READY YET
-    [(_ (name:id . args:arguments+rest) body ...+)
-     ; Note that arguments+rest parses args here and in lambda2. Not ideal.
-     ;#:attr defaults? 
-     #:with proc-id (generate-temporary)
-     #:do [(define-values (mand-pos opt-pos mand-kws opt-kws rest-id)
-             (arg-seqs->arg-lists (syntax->datum #'args.names)
-                                  (syntax->datum #'args.kws)
-                                  (syntax->datum (attribute args.defaults?))))
-           #;(writeln (list mand-pos opt-pos mand-kws opt-kws rest-id))
-           (define name-sym (syntax-e #'name))]
-     #`(begin
-         (define proc-id
-           ;; Make sure to print the correct name for the procedure.
-           ;; https://docs.racket-lang.org/reference/syntax-model.html#(part._infernames)
-           #,(syntax-property #'(lambda2/context #,stx args body ...)
-                               'inferred-name
-                               name-sym))
-         (define-syntax (name call-stx)
-           (call/check '#,name-sym '#,mand-pos '#,opt-pos '#,mand-kws '#,opt-kws '#,rest-id
-                       #'proc-id                       
-                       call-stx)))]
+
+    [(_ (name:id . args) #:fail-case body ...+)
+     (make-define2-body stx #'name #'args #'(body ...) #true)]
+
+    [(_ (name:id . args) body ...+)
+     (make-define2-body stx #'name #'args #'(body ...) #false)]
 
     [(_ (header . args) body ...+)
      #`(define2 header
          (lambda2/context #,stx args body ...))]))
 
-(module+ test
-  (require rackunit
-           racket/dict)
-  
-  (define2 (my-dict-ref d k #:? [default (λ () (error "Unknown key: ~a" k))])
-    (dict-ref d k default))
-  (define2 ((my-curried-dict-ref k #:? default) d)
-    (my-dict-ref d k #:default default))
-  
-  (check-equal? ((my-curried-dict-ref 'a) '((a . aa) (b . bb))) 'aa)
-  (check-exn exn:fail? (λ () ((my-curried-dict-ref 'aa) '((a . aa) (b . bb)))))
-  (check-equal? ((my-curried-dict-ref 'aa #:default 4) '((a . aa) (b . bb))) 4)
-
-  ; This should not raise an argument order exception
-  (let ()
-    (define2 (foo #:x [x 3] #:y y)
-      (list x y))
-    (check-equal? (foo #:x 2 #:y 3)
-                  '(2 3))
-    (check-equal? (foo #:y 3)
-                  '(3 3)))
-
-  (let ()
-    (define2 (foo #:? [c #f]
-                  #:? [a #f]
-                  . rest-args)
-      (list a c rest-args))
-    (check-equal? (foo #:a 1 #:c 2 3 4)
-                  '(1 2 (3 4))))
-
-  (let ()
-    (define2 ((foo #:? [c #f] . rest-args1)
-              #:? [a #f]
-              . rest-args)
-      (list a c rest-args1 rest-args))
-    (check-equal? ((foo #:c 2 'x) #:a 1 3 4)
-                  '(1 2 (x) (3 4))))
-
-  (check-equal?
-   ((lambda2 (#:? [c #f]
-              #:? [a #f]
-              . rest-args)
-             (list a c rest-args))
-    #:a 1 #:c 2 3)
-   '(1 2 (3)))  
-  )
+;; Builds a string representing a reproducible call expression for #:fail-case.
+;; name : symbol?
+;; kws : (listof (or/c keyword? #f)) — one per arg (excluding rest), #f for positional
+;; vals : (listof any/c) — the saved values, same length as kws + possibly one more for rest
+(define (fail-case-call->string name kws vals)
+  (define n-named (length kws))
+  (define named-vals (take vals n-named))
+  (define rest-vals (if (> (length vals) n-named)
+                      (last vals) ; rest argument is the last value
+                      '()))
+  (~a
+   `(,name
+     ,@(for/list ([kw (in-list kws)]
+                  [v (in-list named-vals)])
+         (if kw
+           (~a kw " " (~v v))
+           (~v v)))
+     ,@(map ~v rest-vals))))
