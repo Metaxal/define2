@@ -313,7 +313,7 @@ When a @racketid[parent-id] is given, @bold{the constructor takes a parent insta
 as its first positional argument} and copies the parent's fields into the new struct.
 The parent struct must be @racket[#:transparent].
 This allows both for inheritance and for extension of existing objects,
-and also allows for the fender to access the parent's fields.
+and also allows for the fender to access the parent's fields (see next section).
 
 
 @examples[

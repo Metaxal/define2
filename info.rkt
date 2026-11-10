@@ -5,5 +5,5 @@
                      "scribble-lib" "racket-doc" "rackunit-lib"))
 (define scribblings '(("scribblings/define2.scrbl" ())))
 (define pkg-desc "Like lambda and define, but simplifies keyword arguments and wrapper functions")
-(define version "0.0")
+(define version "0.2")
 (define pkg-authors '(orseau))
